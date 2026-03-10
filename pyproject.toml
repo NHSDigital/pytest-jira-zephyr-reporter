@@ -1,0 +1,69 @@
+[project]
+name = "pytest-jira-zephyr-reporter"
+version = "0.1.0"
+description = "Generic pytest plugin for reporting test results to Jira using Zephyr"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "NHS Digital", email = "mavis-support@nhs.net"},
+]
+keywords = ["pytest", "jira", "zephyr", "test-reporting", "test-management"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Pytest",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Testing",
+]
+
+dependencies = [
+    "pytest>=7.0.0",
+    "requests>=2.25.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/NHSDigital/pytest-jira-zephyr-reporter"
+Repository = "https://github.com/NHSDigital/pytest-jira-zephyr-reporter"
+Issues = "https://github.com/NHSDigital/pytest-jira-zephyr-reporter/issues"
+
+[project.entry-points.pytest11]
+jira_zephyr_reporter = "pytest_jira_zephyr_reporter.hooks"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pytest_jira_zephyr_reporter"]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-mock>=3.10.0",
+    "ruff>=0.15.0",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "DTZ", "T10", "T20", "RET", "SIM", "ARG", "PTH", "PL", "RUF"]
+ignore = [
+    "PLR0913",  # Too many arguments
+    "PLR0912",  # Too many branches
+    "PLR0915",  # Too many statements
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
