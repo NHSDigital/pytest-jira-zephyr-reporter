@@ -18,14 +18,14 @@ A generic pytest plugin for automated test result reporting to Jira using Zephyr
 Install from GitHub:
 
 ```bash
-pip install git+https://github.com/NHSDigital/pytest-jira-zephyr-reporter.git@v0.1.0
+pip install git+https://github.com/NHSDigital/pytest-jira-zephyr-reporter.git@v0.2.0
 ```
 
 Or add to your `pyproject.toml`:
 
 ```toml
 dependencies = [
-    "pytest-jira-zephyr-reporter @ git+https://github.com/NHSDigital/pytest-jira-zephyr-reporter.git@v0.1.0",
+    "pytest-jira-zephyr-reporter @ git+https://github.com/NHSDigital/pytest-jira-zephyr-reporter.git@v0.2.0",
 ]
 ```
 
