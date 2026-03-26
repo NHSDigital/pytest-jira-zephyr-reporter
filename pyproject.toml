@@ -1,6 +1,6 @@
 [project]
 name = "pytest-jira-zephyr-reporter"
-version = "0.1.0"
+version = "0.2.0"
 description = "Generic pytest plugin for reporting test results to Jira using Zephyr"
 readme = "README.md"
 requires-python = ">=3.10"
