@@ -25,7 +25,7 @@ classifiers = [
 
 dependencies = [
     "pytest>=7.0.0",
-    "requests>=2.25.0",
+    "httpx[http2]>=0.24.0",
 ]
 
 [project.urls]

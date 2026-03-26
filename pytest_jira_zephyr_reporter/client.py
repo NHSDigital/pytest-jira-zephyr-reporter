@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from threading import Lock
 
-import requests
+import httpx
 
 from .models import JiraTestCase, TestResult
 
@@ -19,7 +19,7 @@ MAX_ERROR_BODY_LENGTH = 500
 
 
 def _get_response_attr(
-    error: requests.exceptions.HTTPError, attr: str, default: object = None
+    error: httpx.HTTPStatusError, attr: str, default: object = None
 ) -> object:
     return (
         getattr(error.response, attr, default)
@@ -51,7 +51,7 @@ class JiraClient:
         self._request_lock = Lock()
         self._request_count = 0
 
-        self.session = requests.Session()
+        self.session = httpx.Client(http2=True)
 
         self.session.headers.update(
             {
@@ -65,6 +65,18 @@ class JiraClient:
 
         self._field_id_cache: dict[str, str | None] = {}
         self._zephyr_status_cache: dict[str, int] = {}
+
+    def close(self) -> None:
+        """Close the HTTP client connection."""
+        self.session.close()
+
+    def __enter__(self) -> "JiraClient":
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        """Context manager exit."""
+        self.close()
 
     def _throttle_request(self) -> None:
         """Enforce minimum delay between API requests to avoid rate limiting."""
@@ -87,7 +99,7 @@ class JiraClient:
         data: dict | None = None,
         params: dict | None = None,
         files: dict | None = None,
-    ) -> requests.Response:
+    ) -> httpx.Response:
         """Execute HTTP request with appropriate method."""
         kwargs = {"params": params, "timeout": self.timeout}
 
@@ -121,7 +133,7 @@ class JiraClient:
         return ""
 
     def _extract_error_details(
-        self, response: requests.Response | None, error_body: str
+        self, response: httpx.Response | None, error_body: str
     ) -> str:
         """Extract error details from response."""
         if not response or not error_body or error_body == "N/A":
@@ -184,7 +196,7 @@ class JiraClient:
         except ValueError as e:
             logger.debug("Failed to parse %s JSON response: %s", api_name, e)
             return {}
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             status_code = (
                 e.response.status_code if e.response is not None else "unknown"
             )
@@ -192,15 +204,15 @@ class JiraClient:
             error_details = self._extract_error_details(e.response, error_body)
             self._log_http_error(api_name, status_code, method, url, error_details)
             raise
-        except requests.exceptions.Timeout:
+        except httpx.TimeoutException:
             logger.exception(
                 "%s API request timed out after %ss", api_name, self.timeout
             )
             raise
-        except requests.exceptions.ConnectionError:
+        except httpx.ConnectError:
             logger.exception("%s API connection error", api_name)
             raise
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.exception("%s API request failed", api_name)
             if response_text := _get_response_attr(e, "text"):
                 logger.debug(
@@ -261,7 +273,7 @@ class JiraClient:
             response = self._make_zephyr_request("POST", "cycle", data=payload)
             logger.info("Created test cycle '%s' with ID %s", name, response.get("id"))
             return response
-        except requests.exceptions.RequestException:
+        except httpx.HTTPError:
             logger.exception("Failed to create test cycle '%s'", name)
             return None
 
@@ -299,7 +311,7 @@ class JiraClient:
 
             logger.info("Retrieved %d test cycles from Zephyr", len(cycles))
             return cycles
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.warning("Failed to get Zephyr test cycles: %s", e)
             return []
 
@@ -309,7 +321,7 @@ class JiraClient:
             return self._make_jira_request(
                 "GET", f"issue/{issue_key}", params={"fields": "id"}
             ).get("id")
-        except requests.exceptions.RequestException:
+        except httpx.HTTPError:
             logger.exception("Failed to resolve issue id for %s", issue_key)
             return None
 
@@ -329,7 +341,7 @@ class JiraClient:
                     version_id = version.get("id")
                     return int(version_id) if version_id is not None else None
             return None
-        except requests.exceptions.RequestException:
+        except httpx.HTTPError:
             logger.exception("Failed to resolve version id for %s", version_name)
             return None
 
@@ -358,7 +370,7 @@ class JiraClient:
                         status_id = int(status_id_value)
                         self._zephyr_status_cache[cache_key] = status_id
                         return status_id
-        except requests.exceptions.RequestException:
+        except httpx.HTTPError:
             logger.debug("Failed to load Zephyr status list")
 
         fallback_map = {
@@ -430,7 +442,7 @@ class JiraClient:
 
             logger.warning("Failed to extract execution ID from response: %s", response)
             return None
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.warning("Failed to add test to cycle: %s", e)
             return None
 
@@ -473,12 +485,12 @@ class JiraClient:
             if comment:
                 try:
                     self.add_zephyr_execution_comment(execution_id, comment)
-                except requests.exceptions.RequestException as e:
+                except httpx.HTTPError as e:
                     logger.warning(
                         "Failed to add comment to execution %s: %s", execution_id, e
                     )
             return True
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.warning("Failed to update Zephyr execution %s: %s", execution_id, e)
             return False
 
@@ -490,7 +502,7 @@ class JiraClient:
             )
             logger.info("Added comment to Zephyr execution %s", execution_id)
             return True
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.debug("Failed to add comment to Zephyr execution: %s", e)
             return False
 
@@ -523,7 +535,7 @@ class JiraClient:
                         execution_id,
                     )
                     attached_count += 1
-            except (OSError, requests.exceptions.RequestException) as e:
+            except (OSError, httpx.HTTPError) as e:
                 error_msg = f"Error attaching {file_path}: {e}"
                 logger.warning(error_msg)
                 errors.append(error_msg)
@@ -551,7 +563,7 @@ class JiraClient:
                     else []
                 )
             return []
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.debug(
                 "Failed to fetch issue types for project %s: %s", self.project_key, e
             )
@@ -589,7 +601,7 @@ class JiraClient:
             return self._make_jira_request("GET", f"project/{self.project_key}").get(
                 "id"
             )
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.debug("Error getting project ID: %s", e)
             return None
 
@@ -600,13 +612,12 @@ class JiraClient:
                 "GET", f"issue/{issue_key}", params={"fields": "key"}
             )
             return True
-        except requests.exceptions.RequestException as e:
-            if (
-                hasattr(e, "response")
-                and e.response is not None
-                and e.response.status_code == 404  # noqa: PLR2004
-            ):
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:  # noqa: PLR2004
                 return False
+            logger.debug("Failed to resolve issue %s: %s", issue_key, e)
+            return False
+        except httpx.HTTPError as e:
             logger.debug("Failed to resolve issue %s: %s", issue_key, e)
             return False
 
@@ -661,7 +672,7 @@ class JiraClient:
                 return issue_key
             logger.warning("Failed to create test case")
             return None
-        except requests.exceptions.RequestException:
+        except httpx.HTTPError:
             logger.exception("Failed to create test case")
             return None
 
@@ -735,7 +746,7 @@ class JiraClient:
                 ).get("key"):
                     logger.info("Created test case issue: %s", issue_key)
                     return issue_key
-            except requests.exceptions.RequestException as e:
+            except httpx.HTTPError as e:
                 last_error = e
                 logger.debug(
                     "Failed to create test case with issuetype %s: %s",
@@ -756,7 +767,7 @@ class JiraClient:
         """Log test case creation failure with appropriate message."""
         if last_error:
             if (
-                isinstance(last_error, requests.exceptions.RequestException)
+                isinstance(last_error, httpx.HTTPError)
                 and hasattr(last_error, "response")
                 and last_error.response is not None
             ):
@@ -829,7 +840,7 @@ class JiraClient:
                         )
                         return True
                 except (
-                    requests.exceptions.RequestException,
+                    httpx.HTTPError,
                     ValueError,
                     KeyError,
                 ) as e:
@@ -842,7 +853,7 @@ class JiraClient:
                 issue_key,
             )
             return self._add_test_steps_as_comment(issue_key, test_steps)
-        except (requests.exceptions.RequestException, ValueError, KeyError) as e:
+        except (httpx.HTTPError, ValueError, KeyError) as e:
             logger.warning("Failed to add test steps to issue %s: %s", issue_key, e)
             return False
 
@@ -861,7 +872,7 @@ class JiraClient:
                 logger.info("Added test steps as comment to issue %s", issue_key)
                 return True
             return False
-        except (requests.exceptions.RequestException, ValueError, KeyError) as e:
+        except (httpx.HTTPError, ValueError, KeyError) as e:
             logger.warning("Failed to add test steps as comment: %s", e)
             return False
 
@@ -912,7 +923,7 @@ class JiraClient:
                     logger.info("Found existing test case: %s", issue_key)
                     return issue_key
             return None
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.debug("Error searching for test case: %s", e)
             return None
 
@@ -937,7 +948,7 @@ class JiraClient:
                 return None
             logger.info("Created test plan: %s", issue_key)
             return issue_key
-        except requests.exceptions.RequestException:
+        except httpx.HTTPError:
             logger.exception("Failed to create test plan")
             return None
 
@@ -948,7 +959,7 @@ class JiraClient:
                 "POST", f"issue/{issue_key}/comment", data={"body": body}
             )
             return True
-        except requests.exceptions.RequestException:
+        except httpx.HTTPError:
             logger.exception("Failed to add comment to %s", issue_key)
             return False
 
@@ -983,7 +994,7 @@ class JiraClient:
                 link_type,
             )
             return True
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.warning(
                 "Failed to link %s to %s: %s", inward_issue, outward_issue, e
             )
@@ -1034,7 +1045,7 @@ class JiraClient:
             logger.info("Transitioned issue %s to Done", issue_key)
             return True
 
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.warning("Failed to transition issue %s to Done: %s", issue_key, e)
             return False
 
@@ -1078,7 +1089,7 @@ class JiraClient:
                             logger.warning(
                                 "Failed to attach file %s: %s", file_path, response.text
                             )
-                except (OSError, requests.exceptions.RequestException) as e:
+                except (OSError, httpx.HTTPError) as e:
                     logger.warning("Error attaching file %s: %s", file_path, e)
         finally:
             self.session.headers.clear()
