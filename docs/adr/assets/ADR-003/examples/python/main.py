@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-import jwt
 import os
-import requests
 import time
+
+import httpx
+import jwt
 
 
 def main():
@@ -39,7 +40,7 @@ def get_installation_id(jwt_token, gh_org):
         "Accept": "application/vnd.github.v3+json",
     }
     url = "https://api.github.com/app/installations"
-    response = requests.get(url, headers=headers)
+    response = httpx.get(url, headers=headers)
 
     installation_id = None
     for installation in response.json():
@@ -57,7 +58,7 @@ def get_access_token(jwt_token, installation_id):
         "Accept": "application/vnd.github.v3+json",
     }
     url = f"https://api.github.com/app/installations/{installation_id}/access_tokens"
-    response = requests.post(url, headers=headers)
+    response = httpx.post(url, headers=headers)
 
     return response.json().get("token")
 

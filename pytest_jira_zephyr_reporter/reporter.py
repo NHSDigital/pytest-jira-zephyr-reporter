@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from functools import wraps
 from typing import TypeVar
 
-import requests
+import httpx
 
 from .client import JiraClient
 from .config import JiraConfig
@@ -61,7 +61,7 @@ def _calculate_wait_time(attempt: int, delay: float, *, exponential: bool) -> fl
 
 
 def _get_response_attr(
-    error: requests.exceptions.HTTPError, attr: str, default: object = None
+    error: httpx.HTTPStatusError, attr: str, default: object = None
 ) -> object:
     return (
         getattr(error.response, attr, default)
@@ -70,7 +70,7 @@ def _get_response_attr(
     )
 
 
-def _is_rate_limit_error(error: requests.exceptions.HTTPError) -> bool:
+def _is_rate_limit_error(error: httpx.HTTPStatusError) -> bool:
     return _get_response_attr(error, "status_code") == HTTP_TOO_MANY_REQUESTS
 
 
@@ -91,7 +91,7 @@ def retry_on_failure(  # noqa: C901 - Complexity needed for robust error handlin
             for attempt in range(max_retries):
                 try:
                     return func(*args, **kwargs)
-                except requests.exceptions.HTTPError as e:
+                except httpx.HTTPStatusError as e:
                     last_exception = e
                     is_last_attempt = attempt >= max_retries - 1
 
@@ -138,8 +138,8 @@ def retry_on_failure(  # noqa: C901 - Complexity needed for robust error handlin
                         )
                         raise
                 except (
-                    requests.exceptions.ConnectionError,
-                    requests.exceptions.Timeout,
+                    httpx.ConnectError,
+                    httpx.TimeoutException,
                 ) as e:
                     last_exception = e
                     is_last_attempt = attempt >= max_retries - 1
@@ -537,14 +537,14 @@ class JiraTestReporter:
             # Create new test case
             return self._create_new_test_case(test_name, docstring)
 
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             status = _get_response_attr(e, "status_code", "unknown")
             logger.exception(
                 "HTTP error %s while creating test case for '%s'", status, test_name
             )
         except (
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
+            httpx.ConnectError,
+            httpx.TimeoutException,
         ):
             logger.exception(
                 "Connection/timeout error creating test case for '%s'", test_name
