@@ -261,7 +261,7 @@ def _take_screenshot(
         page.screenshot(path=str(screenshot_path), full_page=True, timeout=3000)
         logger.info("Screenshot saved: %s", screenshot_path)
         return str(screenshot_path)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         logger.info("Failed to take screenshot for %s: %s", test_name, e)
         return None
 

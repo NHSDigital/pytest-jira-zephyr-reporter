@@ -175,7 +175,7 @@ class JiraClient:
                 error_details,
             )
 
-    def _make_request(  # noqa: PLR0913
+    def _make_request(
         self,
         method: str,
         url: str,

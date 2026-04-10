@@ -12,7 +12,7 @@ class TestResult(Enum):
 
     __test__ = False
 
-    PASS = "Pass"  # noqa: S105
+    PASS = "Pass"
     FAIL = "Fail"
     BLOCKED = "Blocked"
     NOT_EXECUTED = "Not Executed"

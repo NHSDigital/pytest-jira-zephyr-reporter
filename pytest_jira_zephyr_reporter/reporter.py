@@ -74,7 +74,7 @@ def _is_rate_limit_error(error: httpx.HTTPStatusError) -> bool:
     return _get_response_attr(error, "status_code") == HTTP_TOO_MANY_REQUESTS
 
 
-def retry_on_failure(  # noqa: C901 - Complexity needed for robust error handling
+def retry_on_failure(
     max_retries: int = 3,
     delay: float = 1.0,
     *,
@@ -84,9 +84,9 @@ def retry_on_failure(  # noqa: C901 - Complexity needed for robust error handlin
     and rate limit handling.
     """
 
-    def decorator(func: Callable[..., T]) -> Callable[..., T]:  # noqa: C901
+    def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @wraps(func)
-        def wrapper(*args: object, **kwargs: object) -> T:  # noqa: C901, PLR0912
+        def wrapper(*args: object, **kwargs: object) -> T:
             last_exception = None
             for attempt in range(max_retries):
                 try:
