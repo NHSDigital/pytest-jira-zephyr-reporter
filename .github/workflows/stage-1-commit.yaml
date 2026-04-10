@@ -33,19 +33,40 @@ on:
         type: string
 
 jobs:
-  # Removed unnecessary checks for pytest plugin repository:
-  # - scan-secrets: Not applicable for a Python package
-  # - check-file-format: Not needed
-  # - check-markdown-format: Not needed
-  # - check-english-usage: Not needed
-  # - lint-terraform: Not applicable for a Python package
-  # - count-lines-of-code: Not needed
-  # - scan-dependencies: Not applicable without proper AWS credentials
-  
-  placeholder:
-    name: "Commit stage placeholder"
+  ruff-format:
+    name: "Ruff format check"
     runs-on: ubuntu-latest
-    timeout-minutes: 1
+    timeout-minutes: 5
     steps:
-      - name: "Placeholder step"
-        run: echo "Commit stage checks removed - add Python-specific linting here if needed"
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      
+      - name: "Install ruff"
+        run: pip install ruff
+      
+      - name: "Check code formatting"
+        run: ruff format --check .
+
+  ruff-lint:
+    name: "Ruff lint check"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      
+      - name: "Install ruff"
+        run: pip install ruff
+      
+      - name: "Lint code"
+        run: ruff check .
