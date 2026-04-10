@@ -1,8 +1,7 @@
 {
-  "folders": [
-    {
-      "name": "Repository Template",
-      "path": "."
-    }
-  ]
+    "folders": [
+        {
+            "path": "."
+        }
+    ]
 }
