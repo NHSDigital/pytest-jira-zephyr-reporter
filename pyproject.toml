@@ -47,7 +47,7 @@ packages = ["pytest_jira_zephyr_reporter"]
 dev = [
     "pytest>=7.0.0",
     "pytest-mock>=3.10.0",
-    "ruff>=0.15.0",
+    "ruff>=0.15.10",
 ]
 
 [tool.ruff]
