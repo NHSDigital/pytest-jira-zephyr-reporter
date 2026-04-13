@@ -24,7 +24,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "pytest>=7.0.0",
+    "pytest>=9.0.3",
     "httpx[http2]>=0.24.0",
 ]
 
@@ -45,7 +45,7 @@ packages = ["pytest_jira_zephyr_reporter"]
 
 [dependency-groups]
 dev = [
-    "pytest>=7.0.0",
+    "pytest>=9.0.3",
     "pytest-mock>=3.10.0",
     "ruff>=0.15.0",
 ]
