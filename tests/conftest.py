@@ -72,8 +72,9 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item: pytest.Item, _call: pytest.CallInfo[None]):
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]):
     """Capture the call-phase report for teardown reporting."""
+    del call
     outcome = yield
     rep = outcome.get_result()
     setattr(item, f"rep_{rep.when}", rep)
