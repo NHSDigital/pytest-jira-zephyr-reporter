@@ -156,13 +156,13 @@ git clone https://github.com/NHSDigital/pytest-jira-zephyr-reporter.git
 cd pytest-jira-zephyr-reporter
 
 # Install dependencies
-pip install -e ".[dev]"
+uv sync --group dev
 
 # Run tests
-pytest
+uv run pytest
 
 # Run linter
-ruff check .
+uv run ruff check .
 ```
 
 ## License
