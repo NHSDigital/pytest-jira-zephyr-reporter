@@ -935,8 +935,8 @@ class JiraClient:
                     "project": {"key": self.project_key},
                     "summary": plan_name,
                     "description": description,
-                    "issuetype": {"name": "Task"},
-                    "priority": {"name": "Medium"},
+                    "issuetype": {"name": "Test"},
+                    "priority": {"name": "Not Set"},
                 }
             }
             if not (

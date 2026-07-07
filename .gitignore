@@ -74,3 +74,6 @@ dmypy.json
 
 # Ruff
 .ruff_cache/
+
+# Environment variables
+.env
